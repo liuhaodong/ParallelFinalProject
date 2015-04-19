@@ -1,4 +1,4 @@
-package edu.cmu.cs15618.finalproject.driver;
+package edu.cmu.cs15618.finalproject;
 
 public class Main {
 
