@@ -25,3 +25,14 @@ buildscript{
   }
 }
 
+mainClassName = "edu.cmu.cs15618.finalproject.Main"
+
+jar {
+  manifest {
+    attributes "Main-Class": "$mainClassName"
+  }
+
+  from {
+    configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+  }
+}
