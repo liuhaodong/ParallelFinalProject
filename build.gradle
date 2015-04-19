@@ -1,6 +1,8 @@
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'eclipse'
+apply plugin: 'checkstyle'
+apply plugin: 'findbugs'
 
 test.testLogging { exceptionFormat "full"; events "failed", "passed", "skipped" }
 
