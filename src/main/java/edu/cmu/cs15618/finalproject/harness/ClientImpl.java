@@ -10,16 +10,20 @@ import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
 import edu.cmu.cs15618.finalproject.datatype.ResponseMessage;
 
 public class ClientImpl implements Client, Runnable {
-
+	
+	private String masterIP;
+	private int masterPort;
 	private Socket socket;
 
 	public ClientImpl(String pMasterIP, int pMasterPort) {
-		try {
-			socket = new Socket(pMasterIP, pMasterPort);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		this.masterIP = pMasterIP;
+		this.masterPort = pMasterPort;
+//		try {
+////			socket = new Socket(pMasterIP, pMasterPort);
+//		} catch (IOException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//		}
 	}
 
 	@Override
@@ -27,14 +31,18 @@ public class ClientImpl implements Client, Runnable {
 		// TODO Auto-generated method stub
 		ObjectInputStream objIn = null;
 		ObjectOutputStream objOut = null;
-
+		System.out.println("client send request");
 		try {
-			objIn = new ObjectInputStream(socket.getInputStream());
-			objOut = new ObjectOutputStream(socket.getOutputStream());
+			// objIn = new ObjectInputStream(socket.getInputStream());
 			
+
 			while (true) {
+				socket = new Socket(this.masterIP, this.masterPort);
+				objOut = new ObjectOutputStream(socket.getOutputStream());
+				
 				objOut.writeObject(new RequestMessage(MessageType.WORK, ""));
-				System.out.println("Master get request");
+
+				objIn = new ObjectInputStream(socket.getInputStream());
 				ResponseMessage response = (ResponseMessage) objIn.readObject();
 				if (response.getMessageType() == MessageType.ACTION_SUCCESS) {
 					System.out.println("Get Response");
@@ -48,7 +56,7 @@ public class ClientImpl implements Client, Runnable {
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} 
+		}
 
 	}
 

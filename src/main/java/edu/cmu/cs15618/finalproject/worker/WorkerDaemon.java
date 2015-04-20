@@ -34,7 +34,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 			OutputStream out = masterSocket.getOutputStream();
 
 			ObjectOutputStream objOut = new ObjectOutputStream(out);
-
+			
 			ServerAddress newWorkerAddress = this.bootWorker();
 
 			objOut.writeObject(newWorkerAddress);
@@ -54,6 +54,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 			e.printStackTrace();
 		}
 		WorkerImpl newWorker = new WorkerImpl();
+		new Thread(newWorker).start();
 		return new ServerAddress(newWorker.getIP(), newWorker.getPort());
 	}
 

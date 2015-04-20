@@ -22,7 +22,7 @@ public class WorkerImpl implements Worker, Runnable, MachineInfo {
 
 	public WorkerImpl() {
 		try {
-			this.workerSocket = new ServerSocket();
+			this.workerSocket = new ServerSocket(ServerConfigurations.WORKER_DEFAULT_PORT);
 			executor = Executors
 					.newFixedThreadPool(ServerConfigurations.WORKER_THREAD_POOL_SIZE);
 		} catch (IOException e) {
@@ -48,7 +48,8 @@ public class WorkerImpl implements Worker, Runnable, MachineInfo {
 		while (true) {
 			try {
 				Socket socket = workerSocket.accept();
-
+				
+				System.out.println("worker get new request");
 				ObjectInputStream in = new ObjectInputStream(
 						socket.getInputStream());
 				RequestMessage requestMessage = (RequestMessage) in

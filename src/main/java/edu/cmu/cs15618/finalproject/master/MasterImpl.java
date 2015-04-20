@@ -56,7 +56,10 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 				String ip = tmp[0];
 				int port = Integer.parseInt(tmp[1]);
 				daemonAddresses.add(new ServerAddress(ip, port));
+				bootWorker(new ServerAddress(ip, port));
 			}
+
+			br.close();
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -69,19 +72,24 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 
 	private void startListenClientRequest() {
 		while (true) {
+
 			try {
 				Socket socket = this.serverSocket.accept();
-
+				if(this.avaialbeWorkerAddresses.isEmpty()){
+					socket.close();
+					continue;
+				}
+				
+				System.out.println("new request");
+				
 				ObjectInputStream objIn = new ObjectInputStream(
 						socket.getInputStream());
 
 				RequestMessage request = (RequestMessage) objIn.readObject();
-				
+
 				ServerAddress workerAddress = this.avaialbeWorkerAddresses
 						.get(0);
-				
-				System.out.println("Master get request");
-				
+
 				executors.execute(new RequestDispatcher(socket, request,
 						workerAddress));
 
@@ -112,24 +120,28 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 		public void run() {
 			// TODO Auto-generated method stub
 			try {
+				
+				
 				Socket workerSocket = new Socket(workerAddress.getIP(),
 						workerAddress.getPort());
 
 				ObjectOutputStream objOut = new ObjectOutputStream(
 						workerSocket.getOutputStream());
-
+//				System.out.println(workerSocket.getPort());
+				objOut.writeObject(this.request);
+				objOut.flush();
+				System.out.println("start dispatch");
 				ObjectInputStream objInput = new ObjectInputStream(
 						workerSocket.getInputStream());
-
-				objOut.writeObject(this.request);
-
 				ResponseMessage response = (ResponseMessage) objInput
 						.readObject();
-
+				
 				ObjectOutputStream resultOut = new ObjectOutputStream(
 						socket.getOutputStream());
 				resultOut.writeObject(response);
-
+				objInput.close();
+				objOut.close();
+				resultOut.close();
 				workerSocket.close();
 
 			} catch (IOException e) {
@@ -146,12 +158,14 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 	public void run() {
 		// TODO Auto-generated method stub
 		initMaster();
+
 		this.startListenClientRequest();
 	}
 
 	@Override
 	public boolean bootWorker(ServerAddress daemonAddress) {
 		try {
+			System.out.println(daemonAddress.getIP() + daemonAddress.getPort());
 			Socket socket = new Socket(daemonAddress.getIP(),
 					daemonAddress.getPort());
 
@@ -164,7 +178,9 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 					socket.getInputStream());
 
 			ServerAddress workerAddress = (ServerAddress) objIn.readObject();
-
+			
+			
+			
 			if (workerAddress instanceof ServerAddress) {
 				this.avaialbeWorkerAddresses.add(workerAddress);
 				return true;

@@ -12,7 +12,12 @@ public class Main {
 		new Thread(testDaemon).start();
 		MasterImpl testMasterImpl = new MasterImpl();
 		new Thread(testMasterImpl).start();
-		
+		try {
+			Thread.sleep(1500);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		ClientImpl testClientImpl = new ClientImpl("localhost", 3000);
 		new Thread(testClientImpl).start();
 		
