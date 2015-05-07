@@ -10,9 +10,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import edu.cmu.cs15618.finalproject.classifier.REPTreePredictor;
+import edu.cmu.cs15618.finalproject.classifier.RequestNumPredictor;
 import edu.cmu.cs15618.finalproject.config.ServerConfigurations;
 import edu.cmu.cs15618.finalproject.datatype.MessageType;
 import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
@@ -36,7 +40,11 @@ public class MasterImpl implements Master {
 
 	private ExecutorService executors;
 
+	private RequestNumPredictor requestNumPredictor;
+
 	public MasterImpl() {
+		requestNumPredictor = new REPTreePredictor();
+
 		executors = Executors.newFixedThreadPool(800);
 		avaialbeWorkerAddresses = new ArrayList<ServerAddress>();
 		daemonAddresses = new ArrayList<ServerAddress>();
@@ -63,6 +71,10 @@ public class MasterImpl implements Master {
 
 	private void initMaster() {
 		try {
+			// Test Trace
+			requestNumPredictor
+					.initClassifier("data/NASA_access_log_Aug95.arff");
+
 			BufferedReader br = new BufferedReader(new FileReader(
 					"src/main/resources/worker_addresses"));
 			String line;
@@ -77,6 +89,8 @@ public class MasterImpl implements Master {
 
 			br.close();
 
+			new Timer().schedule(new MasterTickTask(), 1000, 1000);
+
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -84,6 +98,16 @@ public class MasterImpl implements Master {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	private class MasterTickTask extends TimerTask {
+
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+
+		}
+
 	}
 
 	private void startListenClientRequest() {
@@ -195,7 +219,9 @@ public class MasterImpl implements Master {
 			ServerAddress workerAddress = (ServerAddress) objIn.readObject();
 
 			if (workerAddress instanceof ServerAddress) {
-				this.avaialbeWorkerAddresses.add(workerAddress);
+
+				this.avaialbeWorkerAddresses.add(new ServerAddress(
+						daemonAddress.getIP(), workerAddress.getPort()));
 				return true;
 			}
 			return false;

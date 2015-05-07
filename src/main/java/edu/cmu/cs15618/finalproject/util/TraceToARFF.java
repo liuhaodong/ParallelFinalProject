@@ -14,9 +14,10 @@ public class TraceToARFF {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(arffFile));
 
 		bw.write("@relation trace\n");
-		bw.write("@attribute tracedate date dd:HH:mm\n");
-		// bw.write("@attribute hour numeric\n");
-		// bw.write("@attribute minute numeric\n");
+		// bw.write("@attribute tracedate date dd:HH:mm\n");
+		bw.write("@attribute day numeric\n");
+		bw.write("@attribute hour numeric\n");
+		bw.write("@attribute minute numeric\n");
 		// bw.write("@attribute size numeric\n");
 		bw.write("@attribute tracenum numeric\n");
 		bw.write("@data\n");
@@ -58,10 +59,10 @@ public class TraceToARFF {
 					+ currentMin + 10 + currentDay * 24 * 60) {
 				// bw.write(currentHour + "," + currentMin + "," + bytes + ","
 				// + traceCounter + "\n");
-				// bw.write(day + ":" + tmpHour + ":" + tmpMin + ","
-				// + traceCounter + "\n");
-				bw.write(tmpDay + ":" + tmp[2].substring(5, tmp[2].length())
-						+ "," + traceCounter + "\n");
+				bw.write(tmpDay + "," + tmpHour + "," + tmpMin + ","
+						+ traceCounter + "\n");
+				// bw.write(tmpDay + ":" + tmp[2].substring(5, tmp[2].length())
+				// + "," + traceCounter + "\n");
 				// bw.write(date + "," + traceCounter + "\n");
 				traceCounter = 0;
 				currentHour = tmpHour;
