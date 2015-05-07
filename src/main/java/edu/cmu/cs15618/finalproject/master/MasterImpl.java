@@ -79,7 +79,7 @@ public class MasterImpl implements Master {
 					.initClassifier("data/NASA_access_log_Aug95.arff");
 
 			BufferedReader br = new BufferedReader(new FileReader(
-					"src/main/resources/worker_addresses"));
+					"worker_addresses"));
 			String line;
 
 			while ((line = br.readLine()) != null) {
@@ -103,6 +103,13 @@ public class MasterImpl implements Master {
 		}
 	}
 
+	/**
+	 * The tick task has 2 things to do: 1. Update worker status 2. Update
+	 * classifier
+	 * 
+	 * @author haodongl
+	 *
+	 */
 	private class MasterTickTask extends TimerTask {
 
 		@Override
@@ -155,7 +162,7 @@ public class MasterImpl implements Master {
 					continue;
 				}
 
-//				System.out.println("new request");
+				// System.out.println("new request");
 
 				ObjectInputStream objIn = new ObjectInputStream(
 						socket.getInputStream());
@@ -204,7 +211,7 @@ public class MasterImpl implements Master {
 				// System.out.println(workerSocket.getPort());
 				objOut.writeObject(this.request);
 				objOut.flush();
-//				System.out.println("start dispatch");
+				// System.out.println("start dispatch");
 				ObjectInputStream objInput = new ObjectInputStream(
 						workerSocket.getInputStream());
 				ResponseMessage response = (ResponseMessage) objInput

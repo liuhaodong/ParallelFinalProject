@@ -27,6 +27,10 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 
 	private WorkerMonitor workerMonitor;
 
+	private long workerStartTime;
+
+	private Thread workerThread;
+
 	public WorkerDaemon() {
 		workerMonitor = new WorkerUsageMonitor();
 		try {
@@ -73,7 +77,8 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 			e.printStackTrace();
 		}
 		WorkerImpl newWorker = new WorkerImpl();
-		new Thread(newWorker).start();
+		workerThread = new Thread(newWorker);
+		workerThread.start();
 		return new ServerAddress(newWorker.getIP(), newWorker.getPort());
 	}
 
@@ -82,7 +87,9 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	}
 
 	private void killWorker() {
-
+		if (workerThread != null && workerThread.isAlive()) {
+			workerThread.interrupt();
+		}
 	}
 
 	public WorkerStatus getCurrentStatus() {
@@ -104,13 +111,16 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 				MessageType type = requestMessage.getMessageType();
 				if (type == MessageType.BOOT_WORKER) {
 					this.handleBootWorkerRequest(masterRequestSocket);
-
+					this.workerStartTime = System.currentTimeMillis();
 				} else if (type == MessageType.KILL_WORKER) {
-
+					this.killWorker();
 				} else if (type == MessageType.GET_STATUS) {
 					ObjectOutputStream statusOut = new ObjectOutputStream(
 							masterRequestSocket.getOutputStream());
-					statusOut.writeObject(this.getCurrentStatus());
+					WorkerStatus currentStatus = this.getCurrentStatus();
+					currentStatus.setUptime(System.currentTimeMillis()
+							- workerStartTime);
+					statusOut.writeObject(currentStatus);
 				}
 
 			} catch (IOException e) {

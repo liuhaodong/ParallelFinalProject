@@ -21,7 +21,7 @@ public class ClientImpl implements Client {
 	public ClientImpl() {
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(
-					"src/main/resources/master_addresses"));
+					"master_addresses"));
 
 			String line = br.readLine();
 			String masterInfo[] = line.split(" ");

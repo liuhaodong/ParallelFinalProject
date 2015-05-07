@@ -31,10 +31,6 @@ public class REPTreePredictor implements RequestNumPredictor {
 			myClassifier = new REPTree();
 			myClassifier.buildClassifier(dataSet);
 
-			// Evaluation eval = new Evaluation(dataSet);
-			// eval.crossValidateModel(myRepTree, dataSet, 10, new Random(1));
-			// System.out.println(eval.toSummaryString("\nResults\n======\n",
-			// false));
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -78,9 +74,4 @@ public class REPTreePredictor implements RequestNumPredictor {
 		return result;
 	}
 
-	public static void main(String[] args) {
-		REPTreePredictor testPredictor = new REPTreePredictor();
-		testPredictor.initClassifier("data/NASA_access_log_Aug95.arff");
-		System.out.println(testPredictor.predictRequestNum(23, 15, 21));
-	}
 }
