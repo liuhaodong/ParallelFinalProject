@@ -1,10 +1,6 @@
 package edu.cmu.cs15618.finalproject.datatype;
 
-import java.io.Serializable;
-
-import edu.cmu.cs15618.finalproject.MachineInfo;
-
-public class ServerAddress implements MachineInfo, Serializable {
+public class ServerAddress implements MachineInfo {
 
 	private String host;
 	private int port;

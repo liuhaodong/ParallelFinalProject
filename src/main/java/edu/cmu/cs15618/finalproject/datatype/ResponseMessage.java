@@ -1,10 +1,7 @@
 package edu.cmu.cs15618.finalproject.datatype;
 
-import java.io.Serializable;
 
-import edu.cmu.cs15618.finalproject.MachineInfo;
-
-public class ResponseMessage implements Message, Serializable {
+public class ResponseMessage implements Message{
 
 	private MessageType type;
 	private String content;

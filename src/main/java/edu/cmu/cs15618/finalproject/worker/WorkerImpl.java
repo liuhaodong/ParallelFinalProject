@@ -8,13 +8,13 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import edu.cmu.cs15618.finalproject.MachineInfo;
 import edu.cmu.cs15618.finalproject.config.ServerConfigurations;
+import edu.cmu.cs15618.finalproject.datatype.MachineInfo;
 import edu.cmu.cs15618.finalproject.datatype.MessageType;
 import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
 import edu.cmu.cs15618.finalproject.datatype.ResponseMessage;
 
-public class WorkerImpl implements Worker, Runnable, MachineInfo {
+public class WorkerImpl implements Worker {
 
 	private ServerSocket workerSocket;
 
@@ -22,7 +22,8 @@ public class WorkerImpl implements Worker, Runnable, MachineInfo {
 
 	public WorkerImpl() {
 		try {
-			this.workerSocket = new ServerSocket(ServerConfigurations.WORKER_DEFAULT_PORT);
+			this.workerSocket = new ServerSocket(
+					ServerConfigurations.WORKER_DEFAULT_PORT);
 			executor = Executors
 					.newFixedThreadPool(ServerConfigurations.WORKER_THREAD_POOL_SIZE);
 		} catch (IOException e) {
@@ -48,7 +49,7 @@ public class WorkerImpl implements Worker, Runnable, MachineInfo {
 		while (true) {
 			try {
 				Socket socket = workerSocket.accept();
-				
+
 				System.out.println("worker get new request");
 				ObjectInputStream in = new ObjectInputStream(
 						socket.getInputStream());
@@ -86,7 +87,7 @@ public class WorkerImpl implements Worker, Runnable, MachineInfo {
 						socket.getOutputStream());
 				out.writeObject(new ResponseMessage(MessageType.ACTION_SUCCESS,
 						"Success"));
-				
+
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

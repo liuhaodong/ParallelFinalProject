@@ -7,8 +7,8 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-import edu.cmu.cs15618.finalproject.MachineInfo;
 import edu.cmu.cs15618.finalproject.config.ServerConfigurations;
+import edu.cmu.cs15618.finalproject.datatype.MachineInfo;
 import edu.cmu.cs15618.finalproject.datatype.MessageType;
 import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
 import edu.cmu.cs15618.finalproject.datatype.ServerAddress;
@@ -17,6 +17,10 @@ import edu.cmu.cs15618.finalproject.master.Master;
 
 public class WorkerDaemon implements Runnable, MachineInfo {
 
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3567000012557169504L;
 	private ServerSocket daemonSocket;
 
 	public WorkerDaemon() {
@@ -29,12 +33,21 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 		}
 	}
 
+	public WorkerDaemon(int port) {
+		try {
+			daemonSocket = new ServerSocket(port);
+		} catch (IOException e) {
+			// TODO: handle exception
+			e.printStackTrace();
+		}
+	}
+
 	public void handleBootWorkerRequest(Socket masterSocket) {
 		try {
 			OutputStream out = masterSocket.getOutputStream();
 
 			ObjectOutputStream objOut = new ObjectOutputStream(out);
-			
+
 			ServerAddress newWorkerAddress = this.bootWorker();
 
 			objOut.writeObject(newWorkerAddress);
@@ -75,7 +88,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	public void run() {
 		while (true) {
 			try {
-				
+
 				Socket masterRequestSocket = this.daemonSocket.accept();
 				System.out.println("hi");
 				ObjectInputStream in = new ObjectInputStream(

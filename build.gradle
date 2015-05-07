@@ -1,8 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'application'
 apply plugin: 'eclipse'
-apply plugin: 'checkstyle'
-apply plugin: 'findbugs'
+
 
 test.testLogging { exceptionFormat "full"; events "failed", "passed", "skipped" }
 
@@ -19,6 +18,7 @@ repositories {
 
 dependencies {
   testCompile group: 'junit', name: 'junit', version: '4.11'
+  compile 'nz.ac.waikato.cms.weka:weka-stable:3.6.6'
 }
 
 buildscript{

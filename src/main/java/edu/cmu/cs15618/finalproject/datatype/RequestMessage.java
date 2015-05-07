@@ -2,9 +2,7 @@ package edu.cmu.cs15618.finalproject.datatype;
 
 import java.io.Serializable;
 
-import edu.cmu.cs15618.finalproject.MachineInfo;
-
-public class RequestMessage implements Message, Serializable {
+public class RequestMessage implements Message {
 
 	private MessageType type;
 	private String content;

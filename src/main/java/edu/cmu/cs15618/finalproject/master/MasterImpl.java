@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import edu.cmu.cs15618.finalproject.MachineInfo;
 import edu.cmu.cs15618.finalproject.config.ServerConfigurations;
 import edu.cmu.cs15618.finalproject.datatype.MessageType;
 import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
@@ -22,7 +21,12 @@ import edu.cmu.cs15618.finalproject.datatype.ServerAddress;
 import edu.cmu.cs15618.finalproject.harness.Client;
 import edu.cmu.cs15618.finalproject.worker.Worker;
 
-public class MasterImpl implements Master, Runnable, MachineInfo {
+public class MasterImpl implements Master {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -2596170267975352299L;
 
 	private List<ServerAddress> avaialbeWorkerAddresses;
 
@@ -39,6 +43,18 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 		try {
 			this.serverSocket = new ServerSocket(
 					ServerConfigurations.MASTER_DEFAULT_PORT);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public MasterImpl(int port) {
+		executors = Executors.newFixedThreadPool(800);
+		avaialbeWorkerAddresses = new ArrayList<ServerAddress>();
+		daemonAddresses = new ArrayList<ServerAddress>();
+		try {
+			this.serverSocket = new ServerSocket(port);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -75,13 +91,13 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 
 			try {
 				Socket socket = this.serverSocket.accept();
-				if(this.avaialbeWorkerAddresses.isEmpty()){
+				if (this.avaialbeWorkerAddresses.isEmpty()) {
 					socket.close();
 					continue;
 				}
-				
+
 				System.out.println("new request");
-				
+
 				ObjectInputStream objIn = new ObjectInputStream(
 						socket.getInputStream());
 
@@ -120,14 +136,13 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 		public void run() {
 			// TODO Auto-generated method stub
 			try {
-				
-				
+
 				Socket workerSocket = new Socket(workerAddress.getIP(),
 						workerAddress.getPort());
 
 				ObjectOutputStream objOut = new ObjectOutputStream(
 						workerSocket.getOutputStream());
-//				System.out.println(workerSocket.getPort());
+				// System.out.println(workerSocket.getPort());
 				objOut.writeObject(this.request);
 				objOut.flush();
 				System.out.println("start dispatch");
@@ -135,7 +150,7 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 						workerSocket.getInputStream());
 				ResponseMessage response = (ResponseMessage) objInput
 						.readObject();
-				
+
 				ObjectOutputStream resultOut = new ObjectOutputStream(
 						socket.getOutputStream());
 				resultOut.writeObject(response);
@@ -178,9 +193,7 @@ public class MasterImpl implements Master, Runnable, MachineInfo {
 					socket.getInputStream());
 
 			ServerAddress workerAddress = (ServerAddress) objIn.readObject();
-			
-			
-			
+
 			if (workerAddress instanceof ServerAddress) {
 				this.avaialbeWorkerAddresses.add(workerAddress);
 				return true;
