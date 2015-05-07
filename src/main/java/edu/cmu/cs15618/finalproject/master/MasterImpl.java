@@ -8,6 +8,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
@@ -22,6 +23,7 @@ import edu.cmu.cs15618.finalproject.datatype.MessageType;
 import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
 import edu.cmu.cs15618.finalproject.datatype.ResponseMessage;
 import edu.cmu.cs15618.finalproject.datatype.ServerAddress;
+import edu.cmu.cs15618.finalproject.datatype.WorkerStatus;
 import edu.cmu.cs15618.finalproject.harness.Client;
 import edu.cmu.cs15618.finalproject.worker.Worker;
 
@@ -58,6 +60,7 @@ public class MasterImpl implements Master {
 	}
 
 	public MasterImpl(int port) {
+		requestNumPredictor = new REPTreePredictor();
 		executors = Executors.newFixedThreadPool(800);
 		avaialbeWorkerAddresses = new ArrayList<ServerAddress>();
 		daemonAddresses = new ArrayList<ServerAddress>();
@@ -104,8 +107,40 @@ public class MasterImpl implements Master {
 
 		@Override
 		public void run() {
-			// TODO Auto-generated method stub
+			for (ServerAddress addr : daemonAddresses) {
+				try {
+					WorkerStatus status = getWorkerStatus(addr);
+					System.out.println(status.toString());
+				} catch (UnknownHostException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
 
+		private WorkerStatus getWorkerStatus(ServerAddress daemonAddress)
+				throws UnknownHostException, IOException,
+				ClassNotFoundException {
+
+			Socket socket = new Socket(daemonAddress.getIP(),
+					daemonAddress.getPort());
+
+			ObjectOutputStream objOut = new ObjectOutputStream(
+					socket.getOutputStream());
+			objOut.writeObject(new RequestMessage(MessageType.GET_STATUS, ""));
+
+			ObjectInputStream in = new ObjectInputStream(
+					socket.getInputStream());
+
+			WorkerStatus status = (WorkerStatus) in.readObject();
+
+			return status;
 		}
 
 	}
@@ -120,7 +155,7 @@ public class MasterImpl implements Master {
 					continue;
 				}
 
-				System.out.println("new request");
+//				System.out.println("new request");
 
 				ObjectInputStream objIn = new ObjectInputStream(
 						socket.getInputStream());
@@ -169,7 +204,7 @@ public class MasterImpl implements Master {
 				// System.out.println(workerSocket.getPort());
 				objOut.writeObject(this.request);
 				objOut.flush();
-				System.out.println("start dispatch");
+//				System.out.println("start dispatch");
 				ObjectInputStream objInput = new ObjectInputStream(
 						workerSocket.getInputStream());
 				ResponseMessage response = (ResponseMessage) objInput
@@ -219,7 +254,6 @@ public class MasterImpl implements Master {
 			ServerAddress workerAddress = (ServerAddress) objIn.readObject();
 
 			if (workerAddress instanceof ServerAddress) {
-
 				this.avaialbeWorkerAddresses.add(new ServerAddress(
 						daemonAddress.getIP(), workerAddress.getPort()));
 				return true;

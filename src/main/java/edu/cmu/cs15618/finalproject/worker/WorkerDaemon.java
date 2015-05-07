@@ -14,6 +14,8 @@ import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
 import edu.cmu.cs15618.finalproject.datatype.ServerAddress;
 import edu.cmu.cs15618.finalproject.datatype.WorkerStatus;
 import edu.cmu.cs15618.finalproject.master.Master;
+import edu.cmu.cs15618.finalproject.monitor.WorkerMonitor;
+import edu.cmu.cs15618.finalproject.monitor.WorkerUsageMonitor;
 
 public class WorkerDaemon implements Runnable, MachineInfo {
 
@@ -23,7 +25,10 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	private static final long serialVersionUID = -3567000012557169504L;
 	private ServerSocket daemonSocket;
 
+	private WorkerMonitor workerMonitor;
+
 	public WorkerDaemon() {
+		workerMonitor = new WorkerUsageMonitor();
 		try {
 			daemonSocket = new ServerSocket(
 					ServerConfigurations.DAEMON_DEFAULT_PORT);
@@ -34,6 +39,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	}
 
 	public WorkerDaemon(int port) {
+		workerMonitor = new WorkerUsageMonitor();
 		try {
 			daemonSocket = new ServerSocket(port);
 		} catch (IOException e) {
@@ -80,8 +86,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	}
 
 	public WorkerStatus getCurrentStatus() {
-		return null;
-		// TODO
+		return workerMonitor.getWorkerStatus();
 	}
 
 	@Override
@@ -103,7 +108,9 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 				} else if (type == MessageType.KILL_WORKER) {
 
 				} else if (type == MessageType.GET_STATUS) {
-
+					ObjectOutputStream statusOut = new ObjectOutputStream(
+							masterRequestSocket.getOutputStream());
+					statusOut.writeObject(this.getCurrentStatus());
 				}
 
 			} catch (IOException e) {
