@@ -10,7 +10,10 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -38,6 +41,10 @@ public class MasterImpl implements Master {
 
 	private List<ServerAddress> daemonAddresses;
 
+	private Map<ServerAddress, ServerAddress> daemonToWorkerAddressMap;
+
+	private Map<ServerAddress, WorkerStatus> workerStatusMap;
+
 	private ServerSocket serverSocket;
 
 	private ExecutorService executors;
@@ -46,8 +53,7 @@ public class MasterImpl implements Master {
 
 	public MasterImpl() {
 		requestNumPredictor = new REPTreePredictor();
-
-		executors = Executors.newFixedThreadPool(800);
+		executors = Executors.newCachedThreadPool();
 		avaialbeWorkerAddresses = new ArrayList<ServerAddress>();
 		daemonAddresses = new ArrayList<ServerAddress>();
 		try {
@@ -60,8 +66,11 @@ public class MasterImpl implements Master {
 	}
 
 	public MasterImpl(int port) {
+		daemonToWorkerAddressMap = new HashMap<ServerAddress, ServerAddress>();
+		workerStatusMap = new HashMap<ServerAddress, WorkerStatus>();
+
 		requestNumPredictor = new REPTreePredictor();
-		executors = Executors.newFixedThreadPool(800);
+		executors = Executors.newCachedThreadPool();
 		avaialbeWorkerAddresses = new ArrayList<ServerAddress>();
 		daemonAddresses = new ArrayList<ServerAddress>();
 		try {
@@ -92,7 +101,31 @@ public class MasterImpl implements Master {
 
 			br.close();
 
-			new Timer().schedule(new MasterTickTask(), 1000, 1000);
+			new Timer().schedule(new TimerTask() {
+
+				@Override
+				public void run() {
+					for (ServerAddress addr : daemonAddresses) {
+						try {
+							WorkerStatus status = getWorkerStatus(addr);
+							ServerAddress workerAddr = daemonToWorkerAddressMap
+									.get(addr);
+							workerStatusMap.put(workerAddr, status);
+						} catch (UnknownHostException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (ClassNotFoundException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				}
+			}, 1000, 1000);
+
+			new Timer().schedule(new MasterTickTask(), 1000, 5000);
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -104,8 +137,8 @@ public class MasterImpl implements Master {
 	}
 
 	/**
-	 * The tick task has 2 things to do: 1. Update worker status 2. Update
-	 * classifier
+	 * This timer task update classifier, also checks if worker need to
+	 * boot/kill.
 	 * 
 	 * @author haodongl
 	 *
@@ -114,42 +147,31 @@ public class MasterImpl implements Master {
 
 		@Override
 		public void run() {
-			for (ServerAddress addr : daemonAddresses) {
-				try {
-					WorkerStatus status = getWorkerStatus(addr);
-					System.out.println(status.toString());
-				} catch (UnknownHostException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (ClassNotFoundException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
+
 		}
 
-		private WorkerStatus getWorkerStatus(ServerAddress daemonAddress)
-				throws UnknownHostException, IOException,
-				ClassNotFoundException {
+	}
 
-			Socket socket = new Socket(daemonAddress.getIP(),
-					daemonAddress.getPort());
+	private int getCurrentTraceTimer() {
+		// TODO
+		return 0;
+	}
 
-			ObjectOutputStream objOut = new ObjectOutputStream(
-					socket.getOutputStream());
-			objOut.writeObject(new RequestMessage(MessageType.GET_STATUS, ""));
+	private WorkerStatus getWorkerStatus(ServerAddress daemonAddress)
+			throws UnknownHostException, IOException, ClassNotFoundException {
 
-			ObjectInputStream in = new ObjectInputStream(
-					socket.getInputStream());
+		Socket socket = new Socket(daemonAddress.getIP(),
+				daemonAddress.getPort());
 
-			WorkerStatus status = (WorkerStatus) in.readObject();
+		ObjectOutputStream objOut = new ObjectOutputStream(
+				socket.getOutputStream());
+		objOut.writeObject(new RequestMessage(MessageType.GET_STATUS, ""));
 
-			return status;
-		}
+		ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
+		WorkerStatus status = (WorkerStatus) in.readObject();
+
+		return status;
 	}
 
 	private void startListenClientRequest() {
@@ -162,7 +184,7 @@ public class MasterImpl implements Master {
 					continue;
 				}
 
-				// System.out.println("new request");
+//				System.out.println("new request");
 
 				ObjectInputStream objIn = new ObjectInputStream(
 						socket.getInputStream());
@@ -185,6 +207,14 @@ public class MasterImpl implements Master {
 		}
 	}
 
+	private ServerAddress getBestWorker() {
+		Random random = new Random();
+		int max = avaialbeWorkerAddresses.size() - 1;
+		int min = 0;
+		return this.avaialbeWorkerAddresses.get(random.nextInt(max - min + 1)
+				+ min);
+	}
+
 	private class RequestDispatcher implements Runnable {
 
 		private Socket socket;
@@ -200,7 +230,6 @@ public class MasterImpl implements Master {
 
 		@Override
 		public void run() {
-			// TODO Auto-generated method stub
 			try {
 
 				Socket workerSocket = new Socket(workerAddress.getIP(),
@@ -208,10 +237,8 @@ public class MasterImpl implements Master {
 
 				ObjectOutputStream objOut = new ObjectOutputStream(
 						workerSocket.getOutputStream());
-				// System.out.println(workerSocket.getPort());
 				objOut.writeObject(this.request);
 				objOut.flush();
-				// System.out.println("start dispatch");
 				ObjectInputStream objInput = new ObjectInputStream(
 						workerSocket.getInputStream());
 				ResponseMessage response = (ResponseMessage) objInput
@@ -237,9 +264,7 @@ public class MasterImpl implements Master {
 
 	@Override
 	public void run() {
-		// TODO Auto-generated method stub
 		initMaster();
-
 		this.startListenClientRequest();
 	}
 
@@ -261,8 +286,12 @@ public class MasterImpl implements Master {
 			ServerAddress workerAddress = (ServerAddress) objIn.readObject();
 
 			if (workerAddress instanceof ServerAddress) {
-				this.avaialbeWorkerAddresses.add(new ServerAddress(
-						daemonAddress.getIP(), workerAddress.getPort()));
+				ServerAddress workerAddr = new ServerAddress(
+						daemonAddress.getIP(), workerAddress.getPort());
+				this.avaialbeWorkerAddresses.add(workerAddr);
+
+				this.daemonToWorkerAddressMap.put(daemonAddress, workerAddr);
+
 				return true;
 			}
 			return false;

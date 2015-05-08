@@ -102,7 +102,6 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 			try {
 
 				Socket masterRequestSocket = this.daemonSocket.accept();
-				System.out.println("hi");
 				ObjectInputStream in = new ObjectInputStream(
 						masterRequestSocket.getInputStream());
 				RequestMessage requestMessage = (RequestMessage) in

@@ -50,7 +50,7 @@ public class WorkerImpl implements Worker {
 			try {
 				Socket socket = workerSocket.accept();
 
-				System.out.println("worker get new request");
+//				System.out.println("worker get new request");
 				ObjectInputStream in = new ObjectInputStream(
 						socket.getInputStream());
 				RequestMessage requestMessage = (RequestMessage) in
@@ -82,15 +82,12 @@ public class WorkerImpl implements Worker {
 		@Override
 		public void run() {
 			try {
-				Thread.sleep(100);
+//				Thread.sleep(10);
 				ObjectOutputStream out = new ObjectOutputStream(
 						socket.getOutputStream());
 				out.writeObject(new ResponseMessage(MessageType.ACTION_SUCCESS,
 						"Success"));
 
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
