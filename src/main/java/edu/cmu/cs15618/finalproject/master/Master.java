@@ -11,7 +11,7 @@ public interface Master extends Runnable, MachineInfo {
 
 	boolean bootWorker(ServerAddress daemonAddress);
 
-	boolean killWorker(Worker worker);
+	boolean killWorker(ServerAddress daemonAddress);
 
 	void handleWorkerOnline(ServerAddress workerAddress);
 

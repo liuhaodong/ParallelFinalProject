@@ -19,6 +19,7 @@ repositories {
 dependencies {
   testCompile group: 'junit', name: 'junit', version: '4.11'
   compile 'nz.ac.waikato.cms.weka:weka-stable:3.6.6'
+  compile 'org.fusesource:sigar:1.6.4'
 }
 
 buildscript{

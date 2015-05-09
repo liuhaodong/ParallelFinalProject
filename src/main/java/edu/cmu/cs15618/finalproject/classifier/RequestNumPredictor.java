@@ -7,4 +7,6 @@ public interface RequestNumPredictor {
 	public void updateClassifier(int day, int hour, int minute, int requestNum);
 
 	public int predictRequestNum(int day, int hour, int minute);
+
+	public int predictRequestNum(int minuteCount);
 }

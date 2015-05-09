@@ -56,9 +56,11 @@ public class ClientImpl implements Client {
 	private class SendRequest implements Runnable {
 
 		private String request;
+		private int requestBytes;
 
-		public SendRequest(String request) {
+		public SendRequest(String request, int bytes) {
 			this.request = request;
+			this.requestBytes = bytes;
 		}
 
 		@Override
@@ -71,12 +73,15 @@ public class ClientImpl implements Client {
 				tmpsocket = new Socket(masterIP, masterPort);
 				objOut = new ObjectOutputStream(tmpsocket.getOutputStream());
 
-				objOut.writeObject(new RequestMessage(MessageType.WORK, request));
-				
+				objOut.writeObject(new RequestMessage(MessageType.WORK,
+						requestBytes + " " + timer));
+
+				System.out.println(requestBytes + " " + timer);
+
 				objIn = new ObjectInputStream(tmpsocket.getInputStream());
 				ResponseMessage response = (ResponseMessage) objIn.readObject();
 				if (response.getMessageType() == MessageType.ACTION_SUCCESS) {
-					System.out.println("Get Response");
+//					System.out.println("Get Response:" + response.getContent());
 				}
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -132,12 +137,11 @@ public class ClientImpl implements Client {
 				int currentMinute = (tmpDay - 1) * 24 * 60 + tmpHour * 60
 						+ tmpMin;
 
-
 				while (currentMinute > timer) {
 					Thread.sleep(100);
 				}
-				System.out.println("request sent, size:"+ bytes );
-				mService.execute(new SendRequest(line));
+				System.out.println("request sent, size:" + bytes);
+				mService.execute(new SendRequest(line, bytes));
 			}
 
 		} catch (FileNotFoundException e) {

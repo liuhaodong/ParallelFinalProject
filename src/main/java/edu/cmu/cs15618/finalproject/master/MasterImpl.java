@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +50,16 @@ public class MasterImpl implements Master {
 
 	private RequestNumPredictor requestNumPredictor;
 
+	private volatile int timer;
+
+	private Map<ServerAddress, Long> workerLatency;
+
+	private long avgMasterLatency;
+	private long avgWorkerLatency;
+
+	private volatile int clientRequestCounter = 0;
+	private volatile int processedRequestCounter = 0;
+
 	public MasterImpl() {
 		requestNumPredictor = new REPTreePredictor();
 		executors = Executors.newCachedThreadPool();
@@ -76,7 +85,6 @@ public class MasterImpl implements Master {
 		try {
 			this.serverSocket = new ServerSocket(port);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
@@ -105,6 +113,14 @@ public class MasterImpl implements Master {
 
 				@Override
 				public void run() {
+					timer++;
+				}
+			}, 0, 1000);
+
+			new Timer().schedule(new TimerTask() {
+
+				@Override
+				public void run() {
 					for (ServerAddress addr : daemonAddresses) {
 						try {
 							WorkerStatus status = getWorkerStatus(addr);
@@ -123,9 +139,9 @@ public class MasterImpl implements Master {
 						}
 					}
 				}
-			}, 1000, 1000);
+			}, 0, 1000);
 
-			new Timer().schedule(new MasterTickTask(), 1000, 5000);
+			new Timer().schedule(new MasterTickTask(), 0, 5000);
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -152,9 +168,10 @@ public class MasterImpl implements Master {
 
 	}
 
-	private int getCurrentTraceTimer() {
-		// TODO
-		return 0;
+	// Get Predict request
+	private int getPredictRequestNum() {
+		int currentTime = this.timer;
+		return this.requestNumPredictor.predictRequestNum(currentTime);
 	}
 
 	private WorkerStatus getWorkerStatus(ServerAddress daemonAddress)
@@ -176,23 +193,30 @@ public class MasterImpl implements Master {
 
 	private void startListenClientRequest() {
 		while (true) {
-
 			try {
 				Socket socket = this.serverSocket.accept();
+
+				// Add up request counter
+				clientRequestCounter++;
+
 				if (this.avaialbeWorkerAddresses.isEmpty()) {
 					socket.close();
 					continue;
 				}
-
-//				System.out.println("new request");
 
 				ObjectInputStream objIn = new ObjectInputStream(
 						socket.getInputStream());
 
 				RequestMessage request = (RequestMessage) objIn.readObject();
 
-				ServerAddress workerAddress = this.avaialbeWorkerAddresses
-						.get(0);
+				String content = request.getContent();
+				System.out.println("request: " + content);
+				int currentTime = Integer.parseInt(content.split(" ")[1]);
+				timer = currentTime;
+
+				// ServerAddress workerAddress = this.getBestWorker();
+
+				ServerAddress workerAddress = avaialbeWorkerAddresses.get(0);
 
 				executors.execute(new RequestDispatcher(socket, request,
 						workerAddress));
@@ -208,11 +232,21 @@ public class MasterImpl implements Master {
 	}
 
 	private ServerAddress getBestWorker() {
-		Random random = new Random();
-		int max = avaialbeWorkerAddresses.size() - 1;
-		int min = 0;
-		return this.avaialbeWorkerAddresses.get(random.nextInt(max - min + 1)
-				+ min);
+
+		double bestAvailResource = 0;
+
+		ServerAddress bestWorker = avaialbeWorkerAddresses.get(0);
+
+		for (ServerAddress worker : avaialbeWorkerAddresses) {
+			WorkerStatus status = this.workerStatusMap.get(worker);
+			double availResource = (1 - status.getCpuPerc())
+					+ (1 - (double) status.getFreeMem() / status.getTotalMem());
+			if (availResource > bestAvailResource) {
+				bestWorker = worker;
+				bestAvailResource = availResource;
+			}
+		}
+		return bestWorker;
 	}
 
 	private class RequestDispatcher implements Runnable {
@@ -231,7 +265,6 @@ public class MasterImpl implements Master {
 		@Override
 		public void run() {
 			try {
-
 				Socket workerSocket = new Socket(workerAddress.getIP(),
 						workerAddress.getPort());
 
@@ -247,6 +280,10 @@ public class MasterImpl implements Master {
 				ObjectOutputStream resultOut = new ObjectOutputStream(
 						socket.getOutputStream());
 				resultOut.writeObject(response);
+
+				// Successfully processed a request.
+				processedRequestCounter++;
+
 				objInput.close();
 				objOut.close();
 				resultOut.close();
@@ -265,13 +302,32 @@ public class MasterImpl implements Master {
 	@Override
 	public void run() {
 		initMaster();
+		// Periodically collect master status
+		new Timer().schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				int oldRequest = processedRequestCounter;
+				try {
+					Thread.sleep(900);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				int newRequest = processedRequestCounter;
+
+				System.out.println("Current Throughput: "
+						+ (newRequest - oldRequest) + " Current WorkerNum: "
+						+ avaialbeWorkerAddresses.size());
+			}
+		}, 0, 100);
 		this.startListenClientRequest();
+
 	}
 
 	@Override
 	public boolean bootWorker(ServerAddress daemonAddress) {
 		try {
-			System.out.println(daemonAddress.getIP() + daemonAddress.getPort());
 			Socket socket = new Socket(daemonAddress.getIP(),
 					daemonAddress.getPort());
 
@@ -291,6 +347,7 @@ public class MasterImpl implements Master {
 				this.avaialbeWorkerAddresses.add(workerAddr);
 
 				this.daemonToWorkerAddressMap.put(daemonAddress, workerAddr);
+				System.out.println(workerAddr.getIP() + workerAddr.getPort());
 
 				return true;
 			}
@@ -308,8 +365,28 @@ public class MasterImpl implements Master {
 	}
 
 	@Override
-	public boolean killWorker(Worker worker) {
-		// TODO Auto-generated method stub
+	public boolean killWorker(ServerAddress daemonAddress) {
+		try {
+			Socket socket = new Socket(daemonAddress.getIP(),
+					daemonAddress.getPort());
+
+			ObjectOutputStream objOut = new ObjectOutputStream(
+					socket.getOutputStream());
+
+			objOut.writeObject(new RequestMessage(MessageType.KILL_WORKER, ""));
+
+			this.avaialbeWorkerAddresses.remove(daemonToWorkerAddressMap
+					.get(daemonAddress));
+
+			this.daemonToWorkerAddressMap.remove(daemonAddress);
+
+			return true;
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
 		return false;
 	}
 

@@ -14,7 +14,6 @@ public class REPTreePredictor implements RequestNumPredictor {
 
 	private Classifier myClassifier;
 	private Instances dataSet;
-	
 
 	@Override
 	public void initClassifier(String trainingSetPath) {
@@ -74,4 +73,11 @@ public class REPTreePredictor implements RequestNumPredictor {
 		return result;
 	}
 
+	@Override
+	public int predictRequestNum(int minuteCount) {
+		int day = minuteCount / (24 * 60);
+		int hour = (minuteCount - day * (24 * 60)) / 60;
+		int minute = minuteCount - day * (24 * 60) - hour * 60;
+		return predictRequestNum(day + 1, hour, minute);
+	}
 }

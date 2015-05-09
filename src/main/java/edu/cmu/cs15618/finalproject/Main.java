@@ -16,7 +16,6 @@ public class Main {
 		}
 
 		String type = args[0];
-		
 
 		if (type.equals("client")) {
 			Client client = new ClientImpl(args[1]);
@@ -30,18 +29,5 @@ public class Main {
 			WorkerDaemon workerDaemon = new WorkerDaemon(port);
 			new Thread(workerDaemon).start();
 		}
-
-		// WorkerDaemon testDaemon = new WorkerDaemon();
-		// new Thread(testDaemon).start();
-		// MasterImpl testMasterImpl = new MasterImpl();
-		// new Thread(testMasterImpl).start();
-		// try {
-		// Thread.sleep(1500);
-		// } catch (InterruptedException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		// ClientImpl testClientImpl = new ClientImpl("localhost", 3000);
-		// new Thread(testClientImpl).start();
 	}
 }

@@ -1,7 +1,6 @@
 package edu.cmu.cs15618.finalproject.monitor;
 
 import java.lang.management.ManagementFactory;
-import java.util.Random;
 
 import com.sun.management.OperatingSystemMXBean;
 
@@ -22,7 +21,9 @@ public class WorkerUsageMonitor implements WorkerMonitor {
 	public WorkerStatus getWorkerStatus() {
 		double jvmCPUPerc = osBean.getSystemCpuLoad();
 		long jvmFreeMem = runtime.freeMemory();
+		long jvmTotalMem = runtime.totalMemory();
 		WorkerStatus currentStatus = new WorkerStatus(jvmFreeMem, jvmCPUPerc);
+		currentStatus.setTotalMem(jvmTotalMem);
 		return currentStatus;
 	}
 }
