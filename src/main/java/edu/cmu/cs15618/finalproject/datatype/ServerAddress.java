@@ -20,4 +20,18 @@ public class ServerAddress implements MachineInfo {
 		return this.port;
 	}
 
+	@Override
+	public int hashCode() {
+		return this.host.hashCode() + this.port;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof ServerAddress) {
+			ServerAddress cmp = (ServerAddress) obj;
+			return host.equals(cmp.getIP()) && cmp.getPort() == this.port;
+		}
+		return false;
+	}
+
 }

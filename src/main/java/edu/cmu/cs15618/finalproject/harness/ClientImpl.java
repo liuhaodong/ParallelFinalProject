@@ -76,13 +76,15 @@ public class ClientImpl implements Client {
 				objOut.writeObject(new RequestMessage(MessageType.WORK,
 						requestBytes + " " + timer));
 
-				System.out.println(requestBytes + " " + timer);
+				// System.out.println(requestBytes + " " + timer);
 
 				objIn = new ObjectInputStream(tmpsocket.getInputStream());
 				ResponseMessage response = (ResponseMessage) objIn.readObject();
 				if (response.getMessageType() == MessageType.ACTION_SUCCESS) {
-//					System.out.println("Get Response:" + response.getContent());
+					System.out.println("Get Response size:"
+							+ response.getContent().length());
 				}
+				tmpsocket.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
@@ -104,7 +106,7 @@ public class ClientImpl implements Client {
 			public void run() {
 				timer++;
 			}
-		}, 0, 1000);
+		}, 0, 100);
 
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(tracePath));
@@ -138,7 +140,7 @@ public class ClientImpl implements Client {
 						+ tmpMin;
 
 				while (currentMinute > timer) {
-					Thread.sleep(100);
+					Thread.sleep(5);
 				}
 				System.out.println("request sent, size:" + bytes);
 				mService.execute(new SendRequest(line, bytes));

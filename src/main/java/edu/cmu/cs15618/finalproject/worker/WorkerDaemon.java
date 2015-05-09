@@ -6,6 +6,10 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Timer;
+import java.util.TimerTask;
+
+import org.hyperic.sigar.cmd.Time;
 
 import edu.cmu.cs15618.finalproject.config.ServerConfigurations;
 import edu.cmu.cs15618.finalproject.datatype.MachineInfo;
@@ -30,8 +34,10 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	private long workerStartTime;
 
 	private Thread workerThread;
+	private int port;
 
 	public WorkerDaemon() {
+		this.port = ServerConfigurations.DAEMON_DEFAULT_PORT;
 		workerMonitor = new WorkerUsageMonitor();
 		try {
 			daemonSocket = new ServerSocket(
@@ -43,6 +49,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	}
 
 	public WorkerDaemon(int port) {
+		this.port = port;
 		workerMonitor = new WorkerUsageMonitor();
 		try {
 			daemonSocket = new ServerSocket(port);
@@ -76,9 +83,10 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		WorkerImpl newWorker = new WorkerImpl();
+		WorkerImpl newWorker = new WorkerImpl(this.getPort() + 1);
 		workerThread = new Thread(newWorker);
 		workerThread.start();
+		this.workerStartTime = System.currentTimeMillis();
 		return new ServerAddress(newWorker.getIP(), newWorker.getPort());
 	}
 
@@ -93,11 +101,21 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	}
 
 	public WorkerStatus getCurrentStatus() {
-		return workerMonitor.getWorkerStatus();
+		WorkerStatus result = workerMonitor.getWorkerStatus();
+		result.setStartTime(this.workerStartTime);
+		result.setAlive(workerThread != null && workerThread.isAlive());
+		return result;
 	}
 
 	@Override
 	public void run() {
+		new Timer().schedule(new TimerTask() {
+
+			@Override
+			public void run() {
+				System.out.println(" " + getCurrentStatus().toString());
+			}
+		}, 0, 1000);
 		while (true) {
 			try {
 
@@ -117,8 +135,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 					ObjectOutputStream statusOut = new ObjectOutputStream(
 							masterRequestSocket.getOutputStream());
 					WorkerStatus currentStatus = this.getCurrentStatus();
-					currentStatus.setUptime(System.currentTimeMillis()
-							- workerStartTime);
+
 					statusOut.writeObject(currentStatus);
 				}
 
@@ -141,8 +158,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 
 	@Override
 	public int getPort() {
-		// TODO Auto-generated method stub
-		return 0;
+		return this.port;
 	}
 
 }

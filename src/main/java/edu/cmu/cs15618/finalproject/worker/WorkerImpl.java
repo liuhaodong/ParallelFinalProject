@@ -24,8 +24,9 @@ public class WorkerImpl implements Worker {
 		try {
 			this.workerSocket = new ServerSocket(
 					ServerConfigurations.WORKER_DEFAULT_PORT);
-			executor = Executors
-					.newFixedThreadPool(ServerConfigurations.WORKER_THREAD_POOL_SIZE);
+//			executor = Executors
+//					.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+			executor = Executors.newCachedThreadPool();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -36,8 +37,9 @@ public class WorkerImpl implements Worker {
 
 		try {
 			this.workerSocket = new ServerSocket(port);
-			executor = Executors
-					.newFixedThreadPool(ServerConfigurations.WORKER_THREAD_POOL_SIZE);
+//			executor = Executors
+//					.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+			executor = Executors.newCachedThreadPool();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -50,12 +52,12 @@ public class WorkerImpl implements Worker {
 			try {
 				Socket socket = workerSocket.accept();
 
-//				System.out.println("worker get new request");
 				ObjectInputStream in = new ObjectInputStream(
 						socket.getInputStream());
 				RequestMessage requestMessage = (RequestMessage) in
 						.readObject();
-
+				// System.out.println("worker get new request:"
+				// + requestMessage.getContent());
 				if (requestMessage.getMessageType() == MessageType.WORK) {
 					this.processRequest(socket, requestMessage);
 				}
@@ -82,11 +84,21 @@ public class WorkerImpl implements Worker {
 		@Override
 		public void run() {
 			try {
-//				Thread.sleep(10);
+				// Thread.sleep(10);
+
+				int responseSize = Integer
+						.parseInt(requestMessage.getContent().split(" ")[0]);
+
+				StringBuilder sb = new StringBuilder();
+
+				for (int i = 0; i < responseSize; i++) {
+					sb.append(i);
+				}
+
 				ObjectOutputStream out = new ObjectOutputStream(
 						socket.getOutputStream());
 				out.writeObject(new ResponseMessage(MessageType.ACTION_SUCCESS,
-						"Success"));
+						sb.toString()));
 
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

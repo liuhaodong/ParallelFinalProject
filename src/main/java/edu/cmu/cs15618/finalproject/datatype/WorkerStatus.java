@@ -7,14 +7,21 @@ public class WorkerStatus implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -6062814602825894440L;
-	private long uptime;
+	private long startTime;
 	private long totalMem;
 	private long freeMem;
 	private double cpuPerc;
+	private boolean isAlive;
 
 	public WorkerStatus(long pFreeMem, double pCpuPerc) {
 		this.freeMem = pFreeMem;
 		this.cpuPerc = pCpuPerc;
+	}
+
+	public WorkerStatus(long pFreeMem, double pCpuPerc, long startTime) {
+		this.freeMem = pFreeMem;
+		this.cpuPerc = pCpuPerc;
+		this.startTime = startTime;
 	}
 
 	public long getFreeMem() {
@@ -34,14 +41,23 @@ public class WorkerStatus implements Serializable {
 	}
 
 	public long getUptime() {
-		return uptime;
+		if (this.isAlive) {
+			return System.currentTimeMillis() - startTime;
+		}
+		return 0;
 	}
 
-	public void setUptime(long uptime) {
-		this.uptime = uptime;
+	public void setAlive(boolean status) {
+		this.isAlive = status;
 	}
-	
-	
+
+	public boolean isAlive() {
+		return this.isAlive;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
+	}
 
 	public long getTotalMem() {
 		return totalMem;
@@ -54,9 +70,7 @@ public class WorkerStatus implements Serializable {
 	@Override
 	public String toString() {
 		return "CPU Usage: " + this.cpuPerc + " Free Mem: " + freeMem
-				+ " Up Time: " + uptime;
+				+ " Up Time(s): " + this.getUptime() / 1000;
 	}
-	
-	
 
 }

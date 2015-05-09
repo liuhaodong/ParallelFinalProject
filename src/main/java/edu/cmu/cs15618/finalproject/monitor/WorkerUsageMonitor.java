@@ -19,7 +19,7 @@ public class WorkerUsageMonitor implements WorkerMonitor {
 
 	@Override
 	public WorkerStatus getWorkerStatus() {
-		double jvmCPUPerc = osBean.getSystemCpuLoad();
+		double jvmCPUPerc = osBean.getProcessCpuLoad();
 		long jvmFreeMem = runtime.freeMemory();
 		long jvmTotalMem = runtime.totalMemory();
 		WorkerStatus currentStatus = new WorkerStatus(jvmFreeMem, jvmCPUPerc);
