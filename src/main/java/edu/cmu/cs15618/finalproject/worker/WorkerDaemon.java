@@ -137,7 +137,11 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 					WorkerStatus currentStatus = this.getCurrentStatus();
 
 					statusOut.writeObject(currentStatus);
+					statusOut.close();
 				}
+				in.close();
+				
+				masterRequestSocket.close();
 
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

@@ -60,6 +60,8 @@ public class MasterImpl implements Master {
 	private volatile int clientRequestCounter = 0;
 	private volatile int processedRequestCounter = 0;
 
+	private volatile int roundRobin = 0;
+
 	public MasterImpl() {
 		requestNumPredictor = new REPTreePredictor();
 		executors = Executors.newCachedThreadPool();
@@ -83,7 +85,7 @@ public class MasterImpl implements Master {
 		avaialbeWorkerAddresses = new ArrayList<ServerAddress>();
 		daemonAddresses = new ArrayList<ServerAddress>();
 		try {
-			this.serverSocket = new ServerSocket(port,1000);
+			this.serverSocket = new ServerSocket(port, 1000);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -140,7 +142,7 @@ public class MasterImpl implements Master {
 						}
 					}
 				}
-			}, 0, 1000);
+			}, 0, 5);
 
 			new Timer().schedule(new MasterTickTask(), 0, 5000);
 
@@ -188,7 +190,9 @@ public class MasterImpl implements Master {
 		ObjectInputStream in = new ObjectInputStream(socket.getInputStream());
 
 		WorkerStatus status = (WorkerStatus) in.readObject();
-
+		objOut.close();
+		in.close();
+		socket.close();
 		return status;
 	}
 
@@ -235,7 +239,8 @@ public class MasterImpl implements Master {
 	private ServerAddress getBestWorker() {
 
 		double bestAvailResource = 0;
-
+		// roundRobin = roundRobin + 1;
+		// roundRobin = roundRobin % avaialbeWorkerAddresses.size();
 		ServerAddress bestWorker = avaialbeWorkerAddresses.get(0);
 		// System.out.println("availe workers:" +
 		// avaialbeWorkerAddresses.size());
@@ -245,9 +250,7 @@ public class MasterImpl implements Master {
 			if (status == null) {
 				continue;
 			}
-			// System.out.println(status.toString());
-			// double availResource = (1 - status.getCpuPerc())
-			// + (1 - (double) status.getFreeMem() / status.getTotalMem());
+
 			double availResource = status.getFreeMem();
 			if (availResource >= bestAvailResource) {
 				bestWorker = worker;
@@ -275,7 +278,7 @@ public class MasterImpl implements Master {
 			try {
 				Socket workerSocket = new Socket(workerAddress.getIP(),
 						workerAddress.getPort());
-//				Socket workerSocket = workerSocketMap.get(workerAddress);
+				// Socket workerSocket = workerSocketMap.get(workerAddress);
 				ObjectOutputStream objOut = new ObjectOutputStream(
 						workerSocket.getOutputStream());
 				objOut.writeObject(this.request);
@@ -300,10 +303,10 @@ public class MasterImpl implements Master {
 
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// e.printStackTrace();
 			} catch (ClassNotFoundException e) {
 				// TODO Auto-generated catch block
-				e.printStackTrace();
+				// e.printStackTrace();
 			}
 		}
 	}
@@ -357,8 +360,10 @@ public class MasterImpl implements Master {
 
 				this.daemonToWorkerAddressMap.put(daemonAddress, workerAddr);
 				System.out.println(workerAddr.getIP() + workerAddr.getPort());
+				socket.close();
 				return true;
 			}
+			socket.close();
 			return false;
 
 		} catch (IOException e) {

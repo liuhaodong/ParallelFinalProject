@@ -24,8 +24,8 @@ public class WorkerImpl implements Worker {
 		try {
 			this.workerSocket = new ServerSocket(
 					ServerConfigurations.WORKER_DEFAULT_PORT);
-//			executor = Executors
-//					.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+			// executor = Executors
+			// .newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
 			executor = Executors.newCachedThreadPool();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -37,8 +37,8 @@ public class WorkerImpl implements Worker {
 
 		try {
 			this.workerSocket = new ServerSocket(port);
-//			executor = Executors
-//					.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+			// executor = Executors
+			// .newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
 			executor = Executors.newCachedThreadPool();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -56,8 +56,7 @@ public class WorkerImpl implements Worker {
 						socket.getInputStream());
 				RequestMessage requestMessage = (RequestMessage) in
 						.readObject();
-				// System.out.println("worker get new request:"
-				// + requestMessage.getContent());
+
 				if (requestMessage.getMessageType() == MessageType.WORK) {
 					this.processRequest(socket, requestMessage);
 				}
@@ -86,8 +85,8 @@ public class WorkerImpl implements Worker {
 			try {
 				// Thread.sleep(10);
 
-				int responseSize = Integer
-						.parseInt(requestMessage.getContent().split(" ")[0]);
+				int responseSize = Integer.parseInt(requestMessage.getContent()
+						.split(" ")[0]);
 
 				StringBuilder sb = new StringBuilder();
 
@@ -95,12 +94,21 @@ public class WorkerImpl implements Worker {
 					sb.append(i);
 				}
 
+				int[] allocateMem = new int[10 * 1024 * 1024];
+
+				Thread.sleep(1000);
 				ObjectOutputStream out = new ObjectOutputStream(
 						socket.getOutputStream());
 				out.writeObject(new ResponseMessage(MessageType.ACTION_SUCCESS,
-						sb.toString()));
+						"success"));
+				
+				out.close();
+				socket.close();
 
 			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}

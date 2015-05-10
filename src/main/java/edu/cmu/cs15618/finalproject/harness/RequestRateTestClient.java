@@ -16,7 +16,7 @@ import edu.cmu.cs15618.finalproject.datatype.MessageType;
 import edu.cmu.cs15618.finalproject.datatype.RequestMessage;
 import edu.cmu.cs15618.finalproject.datatype.ResponseMessage;
 
-public class ClientImpl implements Client {
+public class RequestRateTestClient implements Client {
 
 	private String masterIP;
 	private int masterPort;
@@ -25,16 +25,14 @@ public class ClientImpl implements Client {
 
 	private ExecutorService mService;
 
-	private String tracePath;
+	private int requestRate;
 
-	public ClientImpl(String path) {
-		timer = 0;
-		tracePath = path;
+	public RequestRateTestClient(int requestRate) {
+		this.requestRate = requestRate;
 		mService = Executors.newCachedThreadPool();
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(
 					"master_addresses"));
-
 			String line = br.readLine();
 			String masterInfo[] = line.split(" ");
 			masterIP = masterInfo[0];
@@ -46,11 +44,6 @@ public class ClientImpl implements Client {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-
-	public ClientImpl(String pMasterIP, int pMasterPort) {
-		this.masterIP = pMasterIP;
-		this.masterPort = pMasterPort;
 	}
 
 	private class SendRequest implements Runnable {
@@ -84,8 +77,6 @@ public class ClientImpl implements Client {
 					System.out.println("Get Response size:"
 							+ response.getContent().length());
 				}
-				objOut.close();
-				objIn.close();
 				tmpsocket.close();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
@@ -102,61 +93,14 @@ public class ClientImpl implements Client {
 	@Override
 	public void run() {
 
-		new Timer().schedule(new TimerTask() {
-
-			@Override
-			public void run() {
-				timer++;
+		while (true) {
+			mService.execute(new SendRequest("request", 5000));
+			try {
+				Thread.sleep(1000 / requestRate);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		}, 0, 1000);
-
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(tracePath));
-
-			String line;
-
-			while ((line = br.readLine()) != null) {
-				String[] data = line.split(" ");
-				String time = data[3];
-				time = time.substring(1, time.length());
-				int bytes;
-				try {
-					bytes = Integer.parseInt(data[data.length - 1]);
-				} catch (NumberFormatException e) {
-					// e.printStackTrace();
-					bytes = 0;
-				}
-
-				String[] tmp = time.split("/");
-
-				int tmpDay = Integer.parseInt(tmp[0]);
-				if (tmp.length < 3) {
-					continue;
-				}
-				String[] tmp2 = tmp[2].split(":");
-				int tmpHour = Integer.parseInt(tmp2[1]);
-				int tmpMin = Integer.parseInt(tmp2[2]);
-				int tmpSec = Integer.parseInt(tmp2[3]);
-
-				int currentMinute = (tmpDay - 1) * 24 * 60 + tmpHour * 60
-						+ tmpMin;
-
-				while (currentMinute > timer) {
-					Thread.sleep(5);
-				}
-				System.out.println("request sent, size:" + bytes);
-				mService.execute(new SendRequest(line, bytes));
-			}
-
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 
 	}
