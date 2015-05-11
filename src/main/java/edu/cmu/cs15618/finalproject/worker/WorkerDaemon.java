@@ -34,6 +34,9 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	private long workerStartTime;
 
 	private Thread workerThread;
+	private ServerAddress workerAddress;
+
+	private boolean isWorkerAlive = false;
 	private int port;
 
 	public WorkerDaemon() {
@@ -78,16 +81,22 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 
 	private ServerAddress bootWorker() {
 		try {
-			Thread.sleep(300);
+			Thread.sleep(3000);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		WorkerImpl newWorker = new WorkerImpl(this.getPort() + 1);
-		workerThread = new Thread(newWorker);
-		workerThread.start();
-		this.workerStartTime = System.currentTimeMillis();
-		return new ServerAddress(newWorker.getIP(), newWorker.getPort());
+		
+		if (workerThread == null && isWorkerAlive == false) {
+			this.workerStartTime = System.currentTimeMillis();
+			WorkerImpl newWorker = new WorkerImpl(this.getPort() + 1);
+			workerThread = new Thread(newWorker);
+			workerThread.start();
+			workerAddress = new ServerAddress(newWorker.getIP(),
+					newWorker.getPort());
+		}
+		isWorkerAlive = true;
+		return workerAddress;
 	}
 
 	public void handleKillWorkerRequest(Master master) {
@@ -95,15 +104,13 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 	}
 
 	private void killWorker() {
-		if (workerThread != null && workerThread.isAlive()) {
-			workerThread.interrupt();
-		}
+		isWorkerAlive = false;
 	}
 
 	public WorkerStatus getCurrentStatus() {
 		WorkerStatus result = workerMonitor.getWorkerStatus();
 		result.setStartTime(this.workerStartTime);
-		result.setAlive(workerThread != null && workerThread.isAlive());
+		result.setAlive(workerThread != null && isWorkerAlive);
 		return result;
 	}
 
@@ -140,7 +147,7 @@ public class WorkerDaemon implements Runnable, MachineInfo {
 					statusOut.close();
 				}
 				in.close();
-				
+
 				masterRequestSocket.close();
 
 			} catch (IOException e) {

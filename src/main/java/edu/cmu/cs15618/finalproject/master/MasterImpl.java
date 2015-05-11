@@ -27,6 +27,7 @@ import edu.cmu.cs15618.finalproject.datatype.ResponseMessage;
 import edu.cmu.cs15618.finalproject.datatype.ServerAddress;
 import edu.cmu.cs15618.finalproject.datatype.WorkerStatus;
 import edu.cmu.cs15618.finalproject.harness.Client;
+import edu.cmu.cs15618.finalproject.util.SendPostRequest;
 import edu.cmu.cs15618.finalproject.worker.Worker;
 
 public class MasterImpl implements Master {
@@ -61,6 +62,8 @@ public class MasterImpl implements Master {
 	private volatile int processedRequestCounter = 0;
 
 	private volatile int roundRobin = 0;
+
+	private volatile int totalWorkerTime = 0;
 
 	public MasterImpl() {
 		requestNumPredictor = new REPTreePredictor();
@@ -100,24 +103,28 @@ public class MasterImpl implements Master {
 			BufferedReader br = new BufferedReader(new FileReader(
 					"worker_addresses"));
 			String line;
-
+			boolean bootflag = true;
 			while ((line = br.readLine()) != null) {
 				String[] tmp = line.split(" ");
 				String ip = tmp[0];
 				int port = Integer.parseInt(tmp[1]);
 				daemonAddresses.add(new ServerAddress(ip, port));
-				bootWorker(new ServerAddress(ip, port));
+				if (bootflag) {
+					bootWorker(new ServerAddress(ip, port));
+					// bootflag = false;
+				}
+
 			}
 
 			br.close();
 
-			new Timer().schedule(new TimerTask() {
-
-				@Override
-				public void run() {
-					timer++;
-				}
-			}, 0, 1000);
+			// new Timer().schedule(new TimerTask() {
+			//
+			// @Override
+			// public void run() {
+			// timer++;
+			// }
+			// }, 0, 1000);
 
 			new Timer().schedule(new TimerTask() {
 
@@ -142,9 +149,9 @@ public class MasterImpl implements Master {
 						}
 					}
 				}
-			}, 0, 5);
+			}, 0, 100);
 
-			new Timer().schedule(new MasterTickTask(), 0, 5000);
+			new Timer().schedule(new MasterTickTask(), 0, 1000);
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -166,6 +173,51 @@ public class MasterImpl implements Master {
 
 		@Override
 		public void run() {
+			// Check worker nodes status
+
+			int totalFreeMemCount = 0;
+			for (ServerAddress workerAddress : avaialbeWorkerAddresses) {
+				WorkerStatus status = workerStatusMap.get(workerAddress);
+				if (status == null)
+					continue;
+				totalFreeMemCount += status.getFreeMem();
+			}
+			double avgFreeMem = (double) totalFreeMemCount
+					/ avaialbeWorkerAddresses.size();
+
+			int day = timer / (24 * 60);
+			int hour = (timer - day * (24 * 60)) / 60;
+			int minute = timer - day * (24 * 60) - hour * 60;
+
+			int predictReqNum = requestNumPredictor.predictRequestNum(timer);
+			// System.out.println("predict req num: " + predictReqNum + " day: "
+			// + (day + 1) + " hour: " + hour + " minute: " + minute);
+
+			if (avgFreeMem < 10 * 1024 * 1024
+					|| (predictReqNum / 400 > avaialbeWorkerAddresses.size())) {
+				for (ServerAddress daemon : daemonAddresses) {
+					ServerAddress worker = daemonToWorkerAddressMap.get(daemon);
+					WorkerStatus status = workerStatusMap.get(worker);
+					if (status != null && !status.isAlive()) {
+						bootWorker(daemon);
+						System.out.println("try to boot worker: "
+								+ daemon.getIP() + daemon.getPort());
+						break;
+					}
+				}
+			} else if (avgFreeMem > 80 * 1024 * 1024
+					&& (predictReqNum / 400 < avaialbeWorkerAddresses.size() - 1)) {
+				for (ServerAddress daemon : daemonAddresses) {
+					ServerAddress worker = daemonToWorkerAddressMap.get(daemon);
+					WorkerStatus status = workerStatusMap.get(worker);
+					if (status != null && status.isAlive()
+							&& avaialbeWorkerAddresses.size() > 1) {
+						killWorker(daemon);
+
+						break;
+					}
+				}
+			}
 
 		}
 
@@ -241,9 +293,8 @@ public class MasterImpl implements Master {
 		double bestAvailResource = 0;
 		// roundRobin = roundRobin + 1;
 		// roundRobin = roundRobin % avaialbeWorkerAddresses.size();
-		ServerAddress bestWorker = avaialbeWorkerAddresses.get(0);
-		// System.out.println("availe workers:" +
-		// avaialbeWorkerAddresses.size());
+		// ServerAddress bestWorker = avaialbeWorkerAddresses.get(roundRobin);
+		ServerAddress bestWorker = null;
 		for (ServerAddress worker : avaialbeWorkerAddresses) {
 			// System.out.println(workerStatusMap.containsKey(worker));
 			WorkerStatus status = this.workerStatusMap.get(worker);
@@ -328,11 +379,23 @@ public class MasterImpl implements Master {
 				}
 				int newRequest = processedRequestCounter;
 
-				System.out.println("Current Throughput: "
+				totalWorkerTime += avaialbeWorkerAddresses.size();
+
+				System.out.println("Current Throughput rate: "
 						+ (newRequest - oldRequest) + " Current WorkerNum: "
-						+ avaialbeWorkerAddresses.size());
+						+ avaialbeWorkerAddresses.size()
+						+ " Total throughput: " + newRequest
+						+ " total worker time: " + totalWorkerTime);
+
+				try {
+					SendPostRequest.sendPost2(totalWorkerTime, newRequest);
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
 			}
-		}, 0, 100);
+		}, 0, 1000);
 		this.startListenClientRequest();
 
 	}
@@ -390,8 +453,6 @@ public class MasterImpl implements Master {
 
 			this.avaialbeWorkerAddresses.remove(daemonToWorkerAddressMap
 					.get(daemonAddress));
-
-			this.daemonToWorkerAddressMap.remove(daemonAddress);
 
 			return true;
 
